@@ -1,0 +1,55 @@
+# Kafka Phase 0 — single-broker cluster in KRaft mode (no ZooKeeper)
+# Start it:   docker compose up -d
+# Stop it:    docker compose down
+# Wipe data:  docker compose down -v
+#
+# After it's up:
+#   - From your laptop, the broker is at   localhost:9092
+#   - A web UI to SEE topics/partitions is  http://localhost:8080
+#
+# Two listeners are defined on purpose:
+#   9092  -> advertised as localhost, used by tools on YOUR machine
+#   29092 -> advertised as kafka,     used by other containers (the UI)
+# This dual-listener setup is the standard way to make Kafka reachable from
+# both the host and the docker network at the same time.
+
+services:
+  kafka:
+    image: apache/kafka:4.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092"          # client connections from your laptop
+    environment:
+      # --- KRaft: this one node is BOTH the broker and the controller ---
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # --- Listeners ---
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # --- Single-node friendly defaults (replication factor 1) ---
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Let you create a topic just by producing to it (handy while learning)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # Optional but recommended: a browser UI to watch topics, partitions & messages.
+  # Delete this whole block if you only want the broker.
+  kafka-ui:
+    image: kafbat/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      - kafka
