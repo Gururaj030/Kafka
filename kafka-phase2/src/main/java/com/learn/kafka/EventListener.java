@@ -18,7 +18,7 @@ public class EventListener {
 
     private static final Logger log = LoggerFactory.getLogger(EventListener.class);
 
-    @KafkaListener(topics = "${app.topic}")
+    @KafkaListener(topics = "${app.topic}", concurrency = "3")
     public void onMessage(ConsumerRecord<String, String> record) {
         log.info("Received key={} | value='{}' | partition {} | offset {}",
                 record.key(), record.value(), record.partition(), record.offset());
