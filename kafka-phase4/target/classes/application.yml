@@ -1,0 +1,27 @@
+server:
+  port: 8083            # 8080 UI, 8081 Phase 2, 8082 Phase 3
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # --- Reliability on the producer side ---
+      acks: all                          # wait for in-sync replicas before ack
+      properties:
+        enable.idempotence: true         # no duplicates even if a send is retried
+        # With idempotence on, the broker de-duplicates retried sends using a
+        # producer id + sequence number. acks=all is required for this to work.
+
+    consumer:
+      group-id: phase4-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.learn.kafka.model"
+
+app:
+  topic: orders-v4
