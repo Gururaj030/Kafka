@@ -1,0 +1,29 @@
+server:
+  port: 8082            # 8080 = Kafka UI, 8081 = Phase 2 app
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # JsonSerializer turns our OrderEvent object into JSON bytes AND writes a
+      # type header (__TypeId__) naming the class, so the consumer knows what to
+      # rebuild without us telling it.
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+
+    consumer:
+      group-id: phase3-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # JsonDeserializer reads that type header and rebuilds the object.
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # SECURITY: JsonDeserializer will only instantiate classes from packages
+        # you explicitly trust. Without this you'd get a "not in trusted packages"
+        # error. Never set this to "*" in production.
+        spring.json.trusted.packages: "com.learn.kafka.model"
+
+app:
+  topic: orders-json
